@@ -19,7 +19,7 @@ from baselines.great.models.great_start import GReaTStart, CategoricalStart, Con
 from baselines.great.models.great_trainer import GReaTTrainer
 from baselines.great.models.great_utils import _array_to_dataframe, _get_column_distribution, _convert_tokens_to_text, \
 _convert_text_to_tabular_data, bcolors
-from peft import LoraConfig, get_peft_model, prepare_model_for_int8_training, TaskType
+from peft import LoraConfig, get_peft_model, TaskType
 
 class GReaT:
     """ GReaT Class
