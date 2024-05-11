@@ -71,7 +71,7 @@ class GaussianMultinomialDiffusion(torch.nn.Module):
             multinomial_loss_type='vb_stochastic',
             parametrization='x0',
             scheduler='cosine',
-            device=torch.device('cpu')
+            device=torch.device('mps')
         ):
 
         super(GaussianMultinomialDiffusion, self).__init__()
@@ -951,7 +951,7 @@ class GaussianMultinomialDiffusion(torch.nn.Module):
 
         return out
 
-    @torch.no_grad()
+    @torch.no_grad() # DDIM SAMPLING
     def sample_ddim(self, num_samples, steps = 1000):
         b = num_samples
         device = self.log_alpha.device

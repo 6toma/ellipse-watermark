@@ -40,7 +40,7 @@ def main(args):
         num_workers = 4,
     )
 
-    num_epochs = 10000 + 1
+    num_epochs = 200 + 1
 
     denoise_fn = MLPDiffusion(in_dim, 1024).to(device)
     print(denoise_fn)
@@ -109,7 +109,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # check cuda
-    if args.gpu != -1 and torch.cuda.is_available():
-        args.device = f'cuda:{args.gpu}'
-    else:
-        args.device = 'cpu'
+    # if args.gpu != -1 and torch.cuda.is_available():
+    #     args.device = f'cuda:{args.gpu}'
+    # else:
+    #     args.device = 'cpu'
+    args.device = 'mps'

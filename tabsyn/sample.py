@@ -26,7 +26,7 @@ def main(args):
     
     model = Model(denoise_fn = denoise_fn, hid_dim = train_z.shape[1]).to(device)
 
-    model.load_state_dict(torch.load(f'{ckpt_path}/model.pt', map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load(f'{ckpt_path}/model.pt', map_location=torch.device('mps')))
 
     '''
         Generating samples    
@@ -67,7 +67,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # check cuda
-    if args.gpu != -1 and torch.cuda.is_available():
-        args.device = f'cuda:{args.gpu}'
-    else:
-        args.device = 'cpu'
+    # if args.gpu != -1 and torch.cuda.is_available():
+    #     args.device = f'cuda:{args.gpu}'
+    # else:
+    #     args.device = 'cpu'
+    args.device = 'mps'

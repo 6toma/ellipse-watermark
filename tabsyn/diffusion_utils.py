@@ -3,24 +3,36 @@
 
 import torch
 import numpy as np
+# from _get_noise import get_noise
 from scipy.stats import betaprime
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 # Loss function corresponding to the variance preserving (VP) formulation
 # from the paper "Score-Based Generative Modeling through Stochastic
 # Differential Equations".
 
-randn_like=torch.randn_like
+randn_like = torch.randn_like
 
-SIGMA_MIN=0.002
-SIGMA_MAX=80
-rho=7
-S_churn= 1
-S_min=0
-S_max=float('inf')
-S_noise=1
+SIGMA_MIN = 0.002
+SIGMA_MAX = 80
+rho = 7
+S_churn = 1
+S_min = 0
+S_max = float('inf')
+S_noise = 1
 
-def sample(net, num_samples, dim, num_steps = 50, device = 'cuda:0'):
+
+def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='cuda'):
+    # encode key watermark in HERE
     latents = torch.randn([num_samples, dim], device=device)
+
+    # add noise to initial noise vector, test data quality after sampling
+    noise_level = 0.1
+    noise = torch.randn(latents.size(), device=latents.device) * noise_level
+    latents = latents + noise
+
+    # shape = [num_samples, dim]
+    # l = get_noise(shape)
 
     step_indices = torch.arange(num_steps, dtype=torch.float32, device=latents.device)
 
@@ -28,7 +40,7 @@ def sample(net, num_samples, dim, num_steps = 50, device = 'cuda:0'):
     sigma_max = min(SIGMA_MAX, net.sigma_max)
 
     t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (
-                sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
+            sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
     t_steps = torch.cat([net.round_sigma(t_steps), torch.zeros_like(t_steps[:1])])
 
     x_next = latents.to(torch.float32) * t_steps[0]
@@ -39,12 +51,12 @@ def sample(net, num_samples, dim, num_steps = 50, device = 'cuda:0'):
 
     return x_next
 
-def sample_step(net, num_steps, i, t_cur, t_next, x_next):
 
+def sample_step(net, num_steps, i, t_cur, t_next, x_next):
     x_cur = x_next
     # Increase noise temporarily.
     gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
-    t_hat = net.round_sigma(t_cur + gamma * t_cur) 
+    t_hat = net.round_sigma(t_cur + gamma * t_cur)
     x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
     # Euler step.
 
@@ -59,6 +71,7 @@ def sample_step(net, num_steps, i, t_cur, t_next, x_next):
         x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
     return x_next
+
 
 class VPLoss:
     def __init__(self, beta_d=19.9, beta_min=0.1, epsilon_t=1e-5):
@@ -80,7 +93,8 @@ class VPLoss:
         t = torch.as_tensor(t)
         return ((0.5 * self.beta_d * (t ** 2) + self.beta_min * t).exp() - 1).sqrt()
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 # Loss function corresponding to the variance exploding (VE) formulation
 # from the paper "Score-Based Generative Modeling through Stochastic
 # Differential Equations".
@@ -93,7 +107,7 @@ class VELoss:
         self.N = N
         print(f"In VE loss: D:{self.D}, N:{self.N}")
 
-    def __call__(self, denosie_fn, data, labels = None, augment_pipe=None, stf=False, pfgmpp=False, ref_data=None):
+    def __call__(self, denosie_fn, data, labels=None, augment_pipe=None, stf=False, pfgmpp=False, ref_data=None):
         if pfgmpp:
 
             # N, 
@@ -105,7 +119,7 @@ class VELoss:
             samples_norm = np.random.beta(a=self.N / 2., b=self.D / 2.,
                                           size=data.shape[0]).astype(np.double)
 
-            samples_norm = np.clip(samples_norm, 1e-3, 1-1e-3)
+            samples_norm = np.clip(samples_norm, 1e-3, 1 - 1e-3)
 
             inverse_beta = samples_norm / (1 - samples_norm + 1e-8)
             inverse_beta = torch.from_numpy(inverse_beta).to(data.device).double()
@@ -123,7 +137,7 @@ class VELoss:
             weight = 1 / sigma ** 2
             y, augment_labels = augment_pipe(data) if augment_pipe is not None else (data, None)
             n = perturbation_x.view_as(y)
-            D_yn = denosie_fn(y + n, sigma, labels,  augment_labels=augment_labels)
+            D_yn = denosie_fn(y + n, sigma, labels, augment_labels=augment_labels)
         else:
             rnd_uniform = torch.rand([data.shape[0], 1, 1, 1], device=data.device)
             sigma = self.sigma_min * ((self.sigma_max / self.sigma_min) ** rnd_uniform)
@@ -135,12 +149,13 @@ class VELoss:
         loss = weight * ((D_yn - y) ** 2)
         return loss
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 # Improved loss function proposed in the paper "Elucidating the Design Space
 # of Diffusion-Based Generative Models" (EDM).
 
 class EDMLoss:
-    def __init__(self, P_mean=-1.2, P_std=1.2, sigma_data=0.5, hid_dim = 100, gamma=5, opts=None):
+    def __init__(self, P_mean=-1.2, P_std=1.2, sigma_data=0.5, hid_dim=100, gamma=5, opts=None):
         self.P_mean = P_mean
         self.P_std = P_std
         self.sigma_data = sigma_data
@@ -148,9 +163,7 @@ class EDMLoss:
         self.gamma = gamma
         self.opts = opts
 
-
     def __call__(self, denoise_fn, data):
-
         rnd_normal = torch.randn(data.shape[0], device=data.device)
         sigma = (rnd_normal * self.P_std + self.P_mean).exp()
 
@@ -159,9 +172,8 @@ class EDMLoss:
         y = data
         n = torch.randn_like(y) * sigma.unsqueeze(1)
         D_yn = denoise_fn(y + n, sigma)
-    
+
         target = y
         loss = weight.unsqueeze(1) * ((D_yn - target) ** 2)
 
         return loss
-

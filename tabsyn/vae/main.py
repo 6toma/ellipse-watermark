@@ -114,7 +114,7 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WD)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.95, patience=10, verbose=True)
 
-    num_epochs = 4000
+    num_epochs = 100 # change back to 4000
     best_train_loss = float('inf')
 
     current_lr = optimizer.param_groups[0]['lr']
@@ -225,7 +225,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # check cuda
-    if args.gpu != -1 and torch.cuda.is_available():
-        args.device = 'cuda:{}'.format(args.gpu)
-    else:
-        args.device = 'cpu'
+    # if args.gpu != -1 and torch.cuda.is_available():
+    #     args.device = 'cuda:{}'.format(args.gpu)
+    # else:
+    #     args.device = 'cpu'
+    args.device = 'mps'
