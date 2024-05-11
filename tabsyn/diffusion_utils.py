@@ -22,6 +22,7 @@ S_max = float('inf')
 S_noise = 1
 
 
+# def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='mps'):
 def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='cuda'):
     # encode key watermark in HERE
     latents = torch.randn([num_samples, dim], device=device)

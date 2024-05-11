@@ -57,7 +57,8 @@ def get_input_generate(args):
     pre_decoder = Decoder_model(2, d_numerical, categories, 4, n_head = 1, factor = 32)
 
     decoder_save_path = f'{curr_dir}/vae/ckpt/{dataname}/decoder.pt'
-    pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('mps')))
+    # pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('mps')))
+    pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('cuda')))
 
     info['pre_decoder'] = pre_decoder
     info['token_dim'] = token_dim

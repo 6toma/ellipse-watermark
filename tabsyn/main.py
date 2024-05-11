@@ -109,8 +109,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # check cuda
-    # if args.gpu != -1 and torch.cuda.is_available():
-    #     args.device = f'cuda:{args.gpu}'
-    # else:
-    #     args.device = 'cpu'
-    args.device = 'mps'
+    if args.gpu != -1 and torch.cuda.is_available():
+        args.device = f'cuda:{args.gpu}'
+    else:
+        args.device = 'cpu'
+    # args.device = 'mps'
