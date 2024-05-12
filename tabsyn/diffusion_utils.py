@@ -3,7 +3,7 @@
 
 import torch
 import numpy as np
-# from _get_noise import get_noise
+from _get_noise import get_noise
 from scipy.stats import betaprime
 
 # ----------------------------------------------------------------------------
@@ -25,15 +25,15 @@ S_noise = 1
 # def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='mps'):
 def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='cuda'):
     # encode key watermark in HERE
-    latents = torch.randn([num_samples, dim], device=device)
+    # latents = torch.randn([num_samples, dim], device=device)
+    #
+    # # add noise to initial noise vector, test data quality after sampling
+    # noise_level = 0.1
+    # noise = torch.randn(latents.size(), device=latents.device) * noise_level
+    # latents = latents + noise
 
-    # add noise to initial noise vector, test data quality after sampling
-    noise_level = 0.1
-    noise = torch.randn(latents.size(), device=latents.device) * noise_level
-    latents = latents + noise
-
-    # shape = [num_samples, dim]
-    # l = get_noise(shape)
+    shape = [num_samples, dim]
+    latents = get_noise(shape, pattern='ring')
 
     step_indices = torch.arange(num_steps, dtype=torch.float32, device=latents.device)
 
