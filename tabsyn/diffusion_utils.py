@@ -223,18 +223,24 @@ def get_noise(shape: Union[torch.Size, List, Tuple], pattern='ring', generator=N
     w_channel = 0  # id for watermarked channel
     w_radius = 10  # watermark radius
     w_pattern = pattern  # watermark pattern
-
+    w_pattern
     # get watermark key and mask
     np_mask = _circle_mask(shape[-1], r=w_radius)
     torch_mask = torch.tensor(np_mask)
     w_mask = torch.zeros(shape, dtype=torch.bool)
-    w_mask[:, w_channel] = torch_mask
+    # w_mask[:, w_channel] = torch_mask
+
+    expanded_mask = torch_mask.unsqueeze(0).expand(shape[0], -1, -1)
+
+    # Assign the expanded mask to each row of w_mask along the specified channel
+    for i in range(shape[0]):
+        w_mask[i, :] = expanded_mask[i, :, w_channel]
 
     w_key = _get_pattern(shape, w_pattern=w_pattern, generator=generator)
 
     # inject watermark
-    assert len(shape) == 4, f"Make sure you pass a `shape` tuple/list of length 4 not {len(shape)}"
-    assert shape[0] == 1, f"For now only batch_size=1 is supported, not {shape[0]}."
+    # assert len(shape) == 4, f"Make sure you pass a `shape` tuple/list of length 4 not {len(shape)}"
+    # assert shape[0] == 1, f"For now only batch_size=1 is supported, not {shape[0]}."
 
     init_latents = torch.randn(shape, generator=generator)
 

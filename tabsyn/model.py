@@ -121,9 +121,10 @@ class MLPDiffusion(nn.Module):
     def forward(self, x, noise_labels, class_labels=None):
         emb = self.map_noise(noise_labels)
         emb = emb.reshape(emb.shape[0], 2, -1).flip(1).reshape(*emb.shape) # swap sin/cos
+        emb = emb.to('cuda')
         emb = self.time_embed(emb)
     
-        x = self.proj(x) + emb
+        x = self.proj(x).to('cuda') + emb
         return self.mlp(x)
 
 
