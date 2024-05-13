@@ -36,7 +36,7 @@ def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='cuda')
     # latents = latents + noise
 
     shape = [num_samples, dim]
-    latents = get_noise(shape, pattern='ring')
+    latents = get_noise(shape, pattern=w_pattern)
 
     step_indices = torch.arange(num_steps, dtype=torch.float32, device=latents.device)
 
@@ -64,15 +64,15 @@ def sample_step(net, num_steps, i, t_cur, t_next, x_next):
     x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
     # Euler step.
 
-    denoised = net(x_hat, t_hat).to(torch.float32)
-    d_cur = (x_hat - denoised) / t_hat
-    x_next = x_hat + (t_next - t_hat) * d_cur
+    denoised = net(x_hat.to('cuda'), t_hat.to('cuda')).to(torch.float32)
+    d_cur = (x_hat.to('cuda') - denoised.to('cuda')) / t_hat.to('cuda')
+    x_next = x_hat.to('cuda') + (t_next.to('cuda') - t_hat.to('cuda')) * d_cur.to('cuda')
 
     # Apply 2nd order correction.
     if i < num_steps - 1:
-        denoised = net(x_next, t_next).to(torch.float32)
-        d_prime = (x_next - denoised) / t_next
-        x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
+        denoised = net(x_next.to('cuda'), t_next.to('cuda')).to(torch.float32)
+        d_prime = (x_next.to('cuda') - denoised.to('cuda')) / t_next.to('cuda')
+        x_next = x_hat.to('cuda') + (t_next.to('cuda') - t_hat.to('cuda')) * (0.5 * d_cur.to('cuda') + 0.5 * d_prime.to('cuda'))
 
     return x_next
 
@@ -114,7 +114,7 @@ class VELoss:
     def __call__(self, denosie_fn, data, labels=None, augment_pipe=None, stf=False, pfgmpp=False, ref_data=None):
         if pfgmpp:
 
-            # N, 
+            # N,
             rnd_uniform = torch.rand(data.shape[0], device=data.device)
             sigma = self.sigma_min * ((self.sigma_max / self.sigma_min) ** rnd_uniform)
 
