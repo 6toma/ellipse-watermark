@@ -204,14 +204,12 @@ def _get_pattern(shape, w_pattern='ring', generator=None):
         gt_patch = torch.fft.fftshift(torch.fft.fft2(gt_init), dim=(-1, -2)) * 0
     elif 'ring' in w_pattern:
         gt_patch = torch.fft.fftshift(torch.fft.fft2(gt_init), dim=(-1, -2))
-
         gt_patch_tmp = gt_patch.clone().detach()
         for i in range(shape[-1] // 2, 0, -1):
             tmp_mask = _circle_mask(gt_init.shape[-1], r=i)
             tmp_mask = torch.tensor(tmp_mask)
-
             for j in range(gt_patch.shape[1]):
-                gt_patch[:, j, tmp_mask] = gt_patch_tmp[0, j, 0, i].item()
+                gt_patch[j, tmp_mask[j]] = gt_patch_tmp[j, i].item()
 
     return gt_patch
 
