@@ -1,0 +1,12 @@
+{
+    "name": "diabetes",
+    "task_type": "binclass",
+    "header": "infer",
+    "column_names": null,
+    "num_col_idx": [0, 1, 2, 3, 4, 5, 6, 7],
+    "cat_col_idx": [],
+    "target_col_idx": [8],
+    "file_type": "csv",
+    "data_path": "data/diabetes/diabetes.csv",
+    "test_path": null
+}

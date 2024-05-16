@@ -28,6 +28,8 @@ S_noise = 1
 # def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='mps'):
 def sample(net, num_samples, dim, w_pattern='ring', num_steps=50, device='cuda'):
     # encode key watermark in HERE
+
+    # Sample zT ∼ N(0,σ2(T)I),tmax = T
     # latents = torch.randn([num_samples, dim], device=device)
     #
     # # add noise to initial noise vector, test data quality after sampling

@@ -1,0 +1,12 @@
+{
+    "name": "abalone",
+    "task_type": "regression",
+    "header": "infer",
+    "column_names": null,
+    "num_col_idx": [1, 2, 3, 4, 5, 6, 7],
+    "cat_col_idx": [0],
+    "target_col_idx": [8],
+    "file_type": "csv",
+    "data_path": "data/abalone/abalone.csv",
+    "test_path": null
+}
