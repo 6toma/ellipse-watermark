@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/tabsyn.iml" filepath="$PROJECT_DIR$/.idea/tabsyn.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../tree-ring-watermark/.idea/tree-ring-watermark.iml" filepath="$PROJECT_DIR$/../tree-ring-watermark/.idea/tree-ring-watermark.iml" />
     </modules>
   </component>
 </project>
