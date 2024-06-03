@@ -14,6 +14,7 @@ from baselines.tabddpm.main_sample import main as sample_tabddpm
 from tabsyn.vae.main import main as train_vae
 from tabsyn.main import main as train_tabsyn
 from tabsyn.sample import main as sample_tabsyn
+from tabsyn.distance import main as distance
 
 import argparse
 import importlib
@@ -21,6 +22,10 @@ import importlib
 def execute_function(method, mode):
     if method == 'vae':
         mode = 'train'
+
+    if mode == 'distance':
+        main_fn = eval('distance')
+        return main_fn
 
     main_fn = eval(f'{mode}_{method}')
 
@@ -145,7 +150,11 @@ def get_args():
     # configs for sampling
     parser.add_argument('--save_path', type=str, default=None, help='Path to save synthetic data.')
     parser.add_argument('--steps', type=int, default=50, help='NFEs.')
-    
+
+    # configs for watermarking
+    parser.add_argument('--wm', type=str, default='None', help='The type of watermark.')
+    parser.add_argument('--data_dir', type=str, default=None, help='Path to data directory.')
+
     args = parser.parse_args()
 
     return args

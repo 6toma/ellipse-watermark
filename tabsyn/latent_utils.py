@@ -4,13 +4,36 @@ import numpy as np
 import pandas as pd
 import torch
 from utils_train import preprocess
-from tabsyn.vae.model import Decoder_model 
+from tabsyn.vae.model import Decoder_model, Encoder_model
+
+
+def get_encoder_latent(X_num, X_cat, info, device):
+
+    pre_encoder = info['pre_encoder'].to(device)
+    X_num = torch.tensor(X_num).float().to(device)
+    X_cat = torch.tensor(X_cat).to(device)
+
+    print('X_num shape:', X_num.shape)
+    print('X_cat shape:', X_cat.shape)
+
+    latent = pre_encoder(X_num, X_cat)
+
+    latent = latent[:, 1:, :]
+
+    B, num_tokens, token_dim = latent.size()
+    in_dim = num_tokens * token_dim
+    
+    latent = latent.view(B, in_dim)
+
+    return latent
+    
 
 def get_input_train(args):
     dataname = args.dataname
 
     curr_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_dir = f'data/{dataname}'
+    # dataset_dir = f'data/{dataname}'
+    dataset_dir = f'{curr_dir}/../data/{dataname}/'
 
     with open(f'{dataset_dir}/info.json', 'r') as f:
         info = json.load(f)
@@ -30,18 +53,16 @@ def get_input_train(args):
 
 def get_input_generate(args):
     dataname = args.dataname
-
+    
     curr_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_dir = f'data/{dataname}'
+    dataset_dir = f'{curr_dir}/../data/{dataname}/'
+
     ckpt_dir = f'{curr_dir}/ckpt/{dataname}'
 
     with open(f'{dataset_dir}/info.json', 'r') as f:
         info = json.load(f)
 
     task_type = info['task_type']
-
-
-    ckpt_dir = f'{curr_dir}/ckpt/{dataname}'
 
     _, _, categories, d_numerical, num_inverse, cat_inverse = preprocess(dataset_dir, task_type = task_type, inverse = True)
 
@@ -55,12 +76,15 @@ def get_input_generate(args):
     
     train_z = train_z.view(B, in_dim)
     pre_decoder = Decoder_model(2, d_numerical, categories, 4, n_head = 1, factor = 32)
+    pre_encoder = Encoder_model(2, d_numerical, categories, 4, n_head = 1, factor = 32)
 
     decoder_save_path = f'{curr_dir}/vae/ckpt/{dataname}/decoder.pt'
-    # pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('mps')))
-    pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('cuda')))
+    pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('cpu')))
+    encoder_save_path = f'{curr_dir}/vae/ckpt/{dataname}/encoder.pt'
+    pre_encoder.load_state_dict(torch.load(encoder_save_path, map_location=torch.device('cpu')))
 
     info['pre_decoder'] = pre_decoder
+    info['pre_encoder'] = pre_encoder
     info['token_dim'] = token_dim
 
     return train_z, curr_dir, dataset_dir, ckpt_dir, info, num_inverse, cat_inverse

@@ -115,19 +115,20 @@ def train_val_test_split(data_df, cat_columns, num_train = 0, num_test = 0):
     total_num = data_df.shape[0]
     idx = np.arange(total_num)
 
-
-    seed = 1234
+    counter = 0
+    # seed = 1234
 
     while True:
-        np.random.seed(seed)
+        counter += 1
+        # np.random.seed(seed)
         np.random.shuffle(idx)
 
         train_idx = idx[:num_train]
         test_idx = idx[-num_test:]
 
 
-        train_df = data_df.loc[train_idx]
-        test_df = data_df.loc[test_idx]
+        train_df = data_df.loc[train_idx].copy()
+        test_df = data_df.loc[test_idx].copy()
 
 
 
@@ -139,10 +140,10 @@ def train_val_test_split(data_df, cat_columns, num_train = 0, num_test = 0):
 
         if flag == 0:
             break
-        else:
-            seed += 1
-        
-    return train_df, test_df, seed    
+        # else:
+        #     seed += 1
+    print('counter', counter)
+    return train_df, test_df
 
 
 def process_data(name):
@@ -178,7 +179,7 @@ def process_data(name):
     target_columns = [column_names[i] for i in target_col_idx]
 
     if info['test_path']:
-
+        print('HERE')
         # if testing data is given
         test_path = info['test_path']
 
@@ -196,12 +197,14 @@ def process_data(name):
 
     else:  
         # Train/ Test Split, 90% Training, 10% Testing (Validation set will be selected from Training set)
-
+        print('HERE ELSE')
         num_train = int(num_data*0.9)
         num_test = num_data - num_train
 
-        train_df, test_df, seed = train_val_test_split(data_df, cat_columns, num_train, num_test)
-    
+        # train_df, test_df, seed = train_val_test_split(data_df, cat_columns, num_train, num_test)
+        train_df, test_df = train_val_test_split(data_df, cat_columns, num_train, num_test)
+
+    train_df.to_csv(f'train_{name}.csv', index = False)
 
     train_df.columns = range(len(train_df.columns))
     test_df.columns = range(len(test_df.columns))
@@ -257,7 +260,7 @@ def process_data(name):
     X_cat_test = test_df[cat_columns].to_numpy()
     y_test = test_df[target_columns].to_numpy()
 
- 
+    # print('X_cat_train', X_cat_train)
     save_dir = f'data/{name}'
     np.save(f'{save_dir}/X_num_train.npy', X_num_train)
     np.save(f'{save_dir}/X_cat_train.npy', X_cat_train)
@@ -345,7 +348,8 @@ if __name__ == "__main__":
     if args.dataname:
         process_data(args.dataname)
     else:
-        for name in ['adult', 'default', 'shoppers', 'magic', 'beijing', 'news', 'abalone', 'diabetes']:
+        for name in ['adult', 'adult1', 'default', 'shoppers', 'magic', 'beijing', 'news', 'abalone', 'diabetes']:
+        # for name in ['adult_ring']:
             process_data(name)
 
         

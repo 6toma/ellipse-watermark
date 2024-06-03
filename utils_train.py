@@ -45,10 +45,11 @@ def preprocess(dataset_path, task_type = 'binclass', inverse = False, cat_encodi
     if cat_encoding is None:
         X_num = dataset.X_num
         X_cat = dataset.X_cat
-
+        # print('X_cat', X_cat)
         X_train_num, X_test_num = X_num['train'], X_num['test']
         X_train_cat, X_test_cat = X_cat['train'], X_cat['test']
-        
+
+        # print('X_train_cat', X_train_cat.shape)
         categories = src.get_categories(X_train_cat)
         d_numerical = X_train_num.shape[1]
 

@@ -408,7 +408,7 @@ def transform_dataset(
             return_normalizer=True
         )
         num_transform = num_transform
-    
+    # print('DATASET X CAT -------', dataset.X_cat)
     if dataset.X_cat is None:
         assert transformations.cat_nan_policy is None
         assert transformations.cat_min_frequency is None
