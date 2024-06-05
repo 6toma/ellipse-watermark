@@ -202,7 +202,7 @@ def main(args):
                     )
                     # recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
                     # is_watermarked = detect(recovered_latent, key, channel, radius)
-                    is_watermarked, dist = detect(recovered_latent, key, channel, radius)
+                    is_watermarked, dist_1 = detect(recovered_latent, key, channel, radius)
                     print(f'{k} is_watermarked: ', is_watermarked)
 
                     # if 'no' not in k:
@@ -210,18 +210,18 @@ def main(args):
                     # else:
                     #     g.write(str(dist) + '\n')
 
-                    save_dir = 'synthetic/adult/real'
-                    save_path = 'synthetic/adult/real/adult.csv'
-                    if not is_processed(save_dir):
-                        # process_data(dataname, save_path, save_dir, k)
-                        process_data(dataname, save_path, save_dir)
+                    # save_dir = 'synthetic/adult/real'
+                    # save_path = 'synthetic/adult/real/adult.csv'
+                    # if not is_processed(save_dir):
+                    #     # process_data(dataname, save_path, save_dir, k)
+                    #     process_data(dataname, save_path, save_dir)
+                    #
+                    # # x_num, x_cat = preprocess_syn(save_dir, k=k)
+                    # x_num, x_cat = preprocess_syn(save_dir)
+                    #
+                    # encoded_latents = get_encoder_latent(x_num, x_cat, info, device)
 
-                    # x_num, x_cat = preprocess_syn(save_dir, k=k)
-                    x_num, x_cat = preprocess_syn(save_dir)
-
-                    encoded_latents = get_encoder_latent(x_num, x_cat, info, device)
-
-                    # encoded_latents = train_z
+                    encoded_latents = train_z
 
                     encoded_latents = (encoded_latents - mean.to(device)) / 2
 
@@ -233,7 +233,7 @@ def main(args):
                     )
                     # recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
                     # is_watermarked = detect(recovered_latent, key, channel, radius)
-                    is_watermarked, dist = detect(recovered_latent, key, channel, radius)
+                    is_watermarked, dist_2 = detect(recovered_latent, key, channel, radius)
                     print(f'{k} is_watermarked: ', is_watermarked)
 
                     # g.write(str(dist) + '\n')
@@ -241,7 +241,11 @@ def main(args):
                     end_time = time.time()
                     print('Time:', end_time - start_time)
                     print('Saving sampled data to {}'.format(save_path))
-        
+
+                    print('\n')
+                    print(f'Wm latents distance: {dist_1}')
+                    print(f'Real latents distance: {dist_2}')
+
 
 if __name__ == '__main__':
 
