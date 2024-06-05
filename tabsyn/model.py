@@ -216,6 +216,9 @@ class DDIMScheduler:
         self.final_alpha_cumprod = np.array(
             1.0) if set_alpha_to_one else self.alphas_cumprod[0]
 
+        self.initial_alpha_cumprod = np.array(
+            1.0) if set_alpha_to_one else self.alphas_cumprod[0]
+
         self.num_inference_steps = None
         self.timesteps = np.arange(0, num_train_timesteps)[::-1].copy()
 
@@ -281,13 +284,42 @@ class DDIMScheduler:
 
         return prev_sample
 
+    # def inverse_step(
+    #         self,
+    #         model_output: Union[torch.FloatTensor, np.ndarray],
+    #         timestep: int,
+    #         sample: Union[torch.FloatTensor, np.ndarray],
+    # ):
+    #
+    #     # 1. get current step value (=t+1)
+    #     prev_timestep = timestep
+    #     timestep = min(
+    #         timestep - self.num_train_timesteps // self.num_inference_steps, self.num_train_timesteps - 1
+    #     )
+    #     # 2. compute alphas, betas
+    #     alpha_prod_t = self.alphas_cumprod[timestep] if timestep >= 0 else self.initial_alpha_cumprod
+    #     alpha_prod_t_prev = self.alphas_cumprod[prev_timestep]
+    #
+    #     beta_prod_t = 1 - alpha_prod_t
+    #
+    #     # 3. Inverted update step
+    #     # re-arranging the update step to get x(t) (new latents) as a function of x(t-1) (current latents)
+    #     pred_original_sample = (sample - beta_prod_t **
+    #                             (0.5) * model_output) / alpha_prod_t ** (0.5)
+    #
+    #     pred_sample_direction = (1 - alpha_prod_t_prev) ** (0.5) * model_output
+    #
+    #     prev_sample = alpha_prod_t_prev ** (0.5) * pred_original_sample + pred_sample_direction
+    #
+    #     return prev_sample
+
     def inverse_step(
             self,
             model_output: Union[torch.FloatTensor, np.ndarray],
             timestep: int,
             sample: Union[torch.FloatTensor, np.ndarray],
     ):
-
+        print('here')
         # 1. get current step value (=t+1)
         current_timestep = timestep - self.num_train_timesteps // self.num_inference_steps
         next_timestep = timestep
@@ -298,7 +330,7 @@ class DDIMScheduler:
             next_timestep] if next_timestep >= 0 else self.final_alpha_cumprod
         beta_prod_t = 1 - alpha_prod_t
 
-        # 3. Inverted update step 
+        # 3. Inverted update step
         # re-arranging the update step to get x(t) (new latents) as a function of x(t-1) (current latents)
         latents = (sample - beta_prod_t.sqrt() * model_output) * (alpha_prod_t_next.sqrt() / alpha_prod_t.sqrt()) + (
                     1 - alpha_prod_t_next).sqrt() * model_output

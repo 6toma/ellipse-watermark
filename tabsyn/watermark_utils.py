@@ -25,6 +25,25 @@ def _circle_mask(shape, r=10, x_offset=0, y_offset=0):
     return ((x - x_center) ** 2 + (y - y_center) ** 2) <= r ** 2
 
 
+def elliptical_mask(shape, x_radius=None, y_radius=None, x_offset=0, y_offset=0):
+    height, width = shape
+    y, x = np.ogrid[:height, :width]
+    y = y[::-1]
+
+    # Calculate the radii if not provided
+    if x_radius is None:
+        x_radius = width // 2
+    if y_radius is None:
+        y_radius = height // 4
+
+    x_center = width / 2 + x_offset
+    y_center = height / 2 + y_offset
+
+    # Generate the elliptical mask
+    mask = ((x - x_center) ** 2 / x_radius ** 2 + (y - y_center) ** 2 / y_radius ** 2) <= 1
+    return mask
+
+
 def _get_pattern(shape, w_pattern='ring'):
     gt_init = torch.randn(shape)
 
@@ -43,7 +62,8 @@ def _get_pattern(shape, w_pattern='ring'):
         print(shape)
         for i in range(min_dim, 0, -1):
             # print(i)
-            tmp_mask = _circle_mask((shape[0], shape[1]), r=i)
+            # tmp_mask = _circle_mask((shape[0], shape[1]), r=i)
+            tmp_mask = elliptical_mask((shape[0], shape[1]))
             tmp_mask = torch.tensor(tmp_mask)
             # gt_patch[tmp_mask] = gt_patch_tmp[0, i].item()
 
@@ -66,7 +86,8 @@ def get_noise(shape: Union[torch.Size, List, Tuple], pattern='ring'):
 
     # get watermark key and mask
     # np_mask = _circle_mask(shape[-1], r=w_radius)
-    np_mask = _circle_mask((shape[-2], shape[-1]), r=w_radius)
+    # np_mask = _circle_mask((shape[-2], shape[-1]), r=w_radius)
+    np_mask = elliptical_mask((shape[-2], shape[-1]))
     torch_mask = torch.tensor(np_mask)
     w_mask = torch.zeros(shape, dtype=torch.bool)
 
@@ -104,21 +125,24 @@ def detect(inverted_latents, w_key, w_channel, w_radius):
 
     shape = inverted_latents.shape
 
-    np_mask = _circle_mask((shape[-2], shape[-1]), r=int(w_radius))
+    # np_mask = _circle_mask((shape[-2], shape[-1]), r=int(w_radius))
+    np_mask = elliptical_mask((shape[-2], shape[-1]))
     torch_mask = torch.tensor(np_mask)
     w_mask = torch.zeros(shape, dtype=torch.bool)
     w_mask[:, :] = torch_mask
 
     inverted_latents_fft = torch.fft.fftshift(torch.fft.fft2(inverted_latents), dim=(-1, -2))
     dist = torch.abs(inverted_latents_fft[w_mask] - w_key[w_mask]).mean().item()
+    # dist = torch.sqrt(torch.sum(torch.pow(torch.subtract(inverted_latents_fft[w_mask], w_key[w_mask]), 2), dim=0)).to(torch.float32).item()
     # dist = torch.norm(inverted_latents_fft[w_mask] - w_key[w_mask])
+    # dist = torch.cdist(inverted_latents_fft[w_mask], w_key[w_mask])
 
     print(dist)
 
     if dist <= threshold:
-        return True
+        return True, dist
 
-    return False
+    return False, dist
 
 # def detect(inverted_latents, w_key, w_channel, w_radius):
 #     threshold = 4148
