@@ -30,8 +30,8 @@ def main(args):
 
     dataname = args.dataname
     device = args.device
-    # steps = args.steps
-    steps = 1000
+    steps = args.steps
+    # steps = 1
     
     with_w = args.wm
 
@@ -100,6 +100,9 @@ def main(args):
                     # np_watermarking_mask = watermarking_mask.detach().cpu().numpy()
                     # np.save(f'{save_dir}/gt_patch.npy', np_gt_patch)
                     # np.save(f'{save_dir}/watermarking_mask.npy', np_watermarking_mask)
+                    # is_watermarked, dist = detect(watermarked_latents, key, channel, radius)
+                    dist = torch.abs(init_latent_w - watermarked_latents).mean().item()
+                    print('Distance after wm: ', dist)
                 else:
                     print('sampling without watermark')
                     latents_1 = init_latents.to(device)
@@ -121,6 +124,27 @@ def main(args):
                         latents_2,
                         num_inference_steps=steps,
                         eta=0.0)
+
+                is_watermarked, dist = detect(x_next_2, key, channel, radius)
+                # dist = torch.abs(init_latent_w - x_next_2).mean().item()
+                print('Distance after wm after DDIM: ', dist)
+
+                x_next_2 = x_next_2 * 2 + mean.to(device)
+
+                x_next_2 = (x_next_2 - mean.to(device)) / 2
+
+                recovered_latent = noise_scheduler.gen_reverse(
+                    model.noise_fn,
+                    x_next_2,
+                    num_inference_steps=steps,
+                    eta=0.0
+                )
+
+                # recovered_latent = (recovered_latent - mean.to(device)) / 2
+
+                is_watermarked, dist = detect(recovered_latent, key, channel, radius)
+                # dist = torch.abs(init_latent_w - recovered_latent).mean().item()
+                print('Distance after wm after DDIM after DDIM Inverse: ', dist)
 
                 # Saving the synthetic csv
                 # x_next_dict = {'no-w': x_next_1, 'w': x_next_2}
@@ -192,6 +216,12 @@ def main(args):
 
                     # encoded_latents = train_z
 
+                    # encoded_latents = (encoded_latents - mean.to(device)) / 2
+
+                    is_watermarked, dist = detect(encoded_latents, key, channel, radius)
+                    # dist = torch.abs(init_latent_w - x_next_2).mean().item()
+                    print('Distance after wm after DDIM before inversion: ', dist)
+
                     encoded_latents = (encoded_latents - mean.to(device)) / 2
 
                     recovered_latent = noise_scheduler.gen_reverse(
@@ -200,8 +230,10 @@ def main(args):
                         num_inference_steps=steps,
                         eta=0.0
                     )
+
+                    # recovered_latent = (recovered_latent - mean.to(device)) / 2
                     # recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
-                    # is_watermarked = detect(recovered_latent, key, channel, radius)
+                    # is_watermarked, dist_1 = detect(recovered_latent, key, channel, radius)
                     is_watermarked, dist_1 = detect(recovered_latent, key, channel, radius)
                     print(f'{k} is_watermarked: ', is_watermarked)
 
@@ -210,18 +242,18 @@ def main(args):
                     # else:
                     #     g.write(str(dist) + '\n')
 
-                    # save_dir = 'synthetic/adult/real'
-                    # save_path = 'synthetic/adult/real/adult.csv'
-                    # if not is_processed(save_dir):
-                    #     # process_data(dataname, save_path, save_dir, k)
-                    #     process_data(dataname, save_path, save_dir)
-                    #
-                    # # x_num, x_cat = preprocess_syn(save_dir, k=k)
-                    # x_num, x_cat = preprocess_syn(save_dir)
-                    #
-                    # encoded_latents = get_encoder_latent(x_num, x_cat, info, device)
+                    save_dir = 'synthetic/adult/real'
+                    save_path = 'synthetic/adult/real/adult.csv'
+                    if not is_processed(save_dir):
+                        # process_data(dataname, save_path, save_dir, k)
+                        process_data(dataname, save_path, save_dir)
 
-                    encoded_latents = train_z
+                    # x_num, x_cat = preprocess_syn(save_dir, k=k)
+                    x_num, x_cat = preprocess_syn(save_dir)
+
+                    encoded_latents = get_encoder_latent(x_num, x_cat, info, device)
+
+                    # encoded_latents = train_z
 
                     encoded_latents = (encoded_latents - mean.to(device)) / 2
 
@@ -231,8 +263,10 @@ def main(args):
                         num_inference_steps=steps,
                         eta=0.0
                     )
+
+                    # recovered_latent = (recovered_latent - mean.to(device)) / 2
                     # recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
-                    # is_watermarked = detect(recovered_latent, key, channel, radius)
+                    # is_watermarked, dist_2 = detect(recovered_latent, key, channel, radius)
                     is_watermarked, dist_2 = detect(recovered_latent, key, channel, radius)
                     print(f'{k} is_watermarked: ', is_watermarked)
 

@@ -26,15 +26,15 @@ def _circle_mask(shape, r=10, x_offset=0, y_offset=0):
 
 
 def elliptical_mask(shape, x_radius=None, y_radius=None, x_offset=0, y_offset=0):
-    height, width = shape
+    width, height = shape
     y, x = np.ogrid[:height, :width]
     y = y[::-1]
 
     # Calculate the radii if not provided
     if x_radius is None:
-        x_radius = width // 2
+        x_radius = width / 2
     if y_radius is None:
-        y_radius = height // 4
+        y_radius = height / 2
 
     x_center = width / 2 + x_offset
     y_center = height / 2 + y_offset
@@ -63,12 +63,12 @@ def _get_pattern(shape, w_pattern='ring'):
         for i in range(min_dim, 0, -1):
             # print(i)
             # tmp_mask = _circle_mask((shape[0], shape[1]), r=i)
-            tmp_mask = elliptical_mask((shape[0], shape[1]))
+            tmp_mask = elliptical_mask((shape[-1], shape[-2]))
             tmp_mask = torch.tensor(tmp_mask)
             # gt_patch[tmp_mask] = gt_patch_tmp[0, i].item()
-
-            for j in range(gt_patch.shape[1]):
-                gt_patch[j, tmp_mask[j]] = gt_patch_tmp[i, j].item()
+            gt_patch[tmp_mask] = gt_patch_tmp[0, i].item()
+            # for j in range(gt_patch.shape[-1]):
+            #     gt_patch[j, tmp_mask[j]] = gt_patch_tmp[i, j].item()
 
             # for j in range(min_dim):
             #     print(j)
@@ -87,7 +87,7 @@ def get_noise(shape: Union[torch.Size, List, Tuple], pattern='ring'):
     # get watermark key and mask
     # np_mask = _circle_mask(shape[-1], r=w_radius)
     # np_mask = _circle_mask((shape[-2], shape[-1]), r=w_radius)
-    np_mask = elliptical_mask((shape[-2], shape[-1]))
+    np_mask = elliptical_mask((shape[-1], shape[-2]))
     torch_mask = torch.tensor(np_mask)
     w_mask = torch.zeros(shape, dtype=torch.bool)
 
@@ -126,7 +126,7 @@ def detect(inverted_latents, w_key, w_channel, w_radius):
     shape = inverted_latents.shape
 
     # np_mask = _circle_mask((shape[-2], shape[-1]), r=int(w_radius))
-    np_mask = elliptical_mask((shape[-2], shape[-1]))
+    np_mask = elliptical_mask((shape[-1], shape[-2]))
     torch_mask = torch.tensor(np_mask)
     w_mask = torch.zeros(shape, dtype=torch.bool)
     w_mask[:, :] = torch_mask

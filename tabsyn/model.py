@@ -319,7 +319,6 @@ class DDIMScheduler:
             timestep: int,
             sample: Union[torch.FloatTensor, np.ndarray],
     ):
-        print('here')
         # 1. get current step value (=t+1)
         current_timestep = timestep - self.num_train_timesteps // self.num_inference_steps
         next_timestep = timestep
@@ -394,7 +393,7 @@ class DDIMScheduler:
         self.set_timesteps(num_inference_steps)
         reverse_timesteps = self.timesteps[::-1]
 
-        for t in tqdm(reverse_timesteps[1:]):
+        for t in tqdm(reverse_timesteps[:]):
             # 1. predict noise model_output
             timesteps = torch.full((N,), t, dtype=torch.long, device=device)
             model_output = model(x_next, timesteps)
