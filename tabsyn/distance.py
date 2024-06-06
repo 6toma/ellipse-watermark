@@ -21,8 +21,8 @@ def main(args):
     dataname = args.dataname
     device = args.device
     data_dir = args.data_dir
-    # steps = args.steps
-    steps = 1
+    steps = args.steps
+    # steps = 1
 
     with_w = args.wm
 
@@ -200,10 +200,10 @@ if __name__ == '__main__':
 #
 #     parser = argparse.ArgumentParser(description='Generation')
 #
-#     parser.add_argument('--dataname', type=str, default='adult', help='Name of dataset.')
-#     parser.add_argument('--gpu', type=int, default=0, help='GPU index.')
-#     parser.add_argument('--epoch', type=int, default=None, help='Epoch.')
-#     parser.add_argument('--steps', type=int, default=None, help='Number of function evaluations.')
+#     parser.add_argument('--dataname', type=str, default='adult', help.py='Name of dataset.')
+#     parser.add_argument('--gpu', type=int, default=0, help.py='GPU index.')
+#     parser.add_argument('--epoch', type=int, default=None, help.py='Epoch.')
+#     parser.add_argument('--steps', type=int, default=None, help.py='Number of function evaluations.')
 #
 #     args = parser.parse_args()
 #

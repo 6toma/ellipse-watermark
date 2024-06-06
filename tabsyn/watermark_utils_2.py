@@ -32,9 +32,9 @@ def elliptical_mask(shape, x_radius=None, y_radius=None, x_offset=0, y_offset=0)
 
     # Calculate the radii if not provided
     if x_radius is None:
-        x_radius = width / 2
+        x_radius = width
     if y_radius is None:
-        y_radius = height / 2
+        y_radius = height
 
     x_center = width / 2 + x_offset
     y_center = height / 2 + y_offset
@@ -117,6 +117,7 @@ def detect(inverted_latents, w_key, w_channel, w_radius):
     w_mask[:, int(w_channel)] = torch_mask
 
     # calculate the distance
+    inverted_latents = inverted_latents.to("cpu")
     inverted_latents_fft = torch.fft.fftshift(torch.fft.fft2(inverted_latents), dim=(-1, -2))
     dist = torch.abs(inverted_latents_fft[w_mask] - w_key[w_mask]).mean().item()
     # dist = torch.cdist(inverted_latents_fft[w_mask], w_key[w_mask])

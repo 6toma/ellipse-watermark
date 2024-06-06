@@ -79,9 +79,9 @@ def get_input_generate(args):
     pre_encoder = Encoder_model(2, d_numerical, categories, 4, n_head = 1, factor = 32)
 
     decoder_save_path = f'{curr_dir}/vae/ckpt/{dataname}/decoder.pt'
-    pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('cpu')))
+    pre_decoder.load_state_dict(torch.load(decoder_save_path, map_location=torch.device('mps')))
     encoder_save_path = f'{curr_dir}/vae/ckpt/{dataname}/encoder.pt'
-    pre_encoder.load_state_dict(torch.load(encoder_save_path, map_location=torch.device('cpu')))
+    pre_encoder.load_state_dict(torch.load(encoder_save_path, map_location=torch.device('mps')))
 
     info['pre_decoder'] = pre_decoder
     info['pre_encoder'] = pre_encoder

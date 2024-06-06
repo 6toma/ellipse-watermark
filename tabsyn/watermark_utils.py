@@ -66,9 +66,9 @@ def _get_pattern(shape, w_pattern='ring'):
             tmp_mask = elliptical_mask((shape[-1], shape[-2]))
             tmp_mask = torch.tensor(tmp_mask)
             # gt_patch[tmp_mask] = gt_patch_tmp[0, i].item()
-            gt_patch[tmp_mask] = gt_patch_tmp[0, i].item()
-            # for j in range(gt_patch.shape[-1]):
-            #     gt_patch[j, tmp_mask[j]] = gt_patch_tmp[i, j].item()
+            # gt_patch[tmp_mask] = gt_patch_tmp[0, i].item()
+            for j in range(gt_patch.shape[-1]):
+                gt_patch[j, tmp_mask[j]] = gt_patch_tmp[i, j].item()
 
             # for j in range(min_dim):
             #     print(j)

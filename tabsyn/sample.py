@@ -13,7 +13,7 @@ import wandb
 from tabsyn.model import MLPDiffusion, Model, DDIMModel, DDIMScheduler
 from tabsyn.latent_utils import get_input_generate, recover_data, split_num_cat_target, get_encoder_latent
 # from tabsyn.watermark_utils import get_watermarking_mask, inject_watermark, get_watermarking_pattern, eval_watermark
-from tabsyn.watermark_utils import get_noise, detect
+from tabsyn.watermark_utils_2 import get_noise, detect
 from tabsyn.process_syn_dataset import process_data, preprocess_syn, is_processed
 
 warnings.filterwarnings('ignore')
@@ -32,7 +32,7 @@ def main(args):
     device = args.device
     steps = args.steps
     # steps = 1
-    
+    device = "mps"
     with_w = args.wm
 
     train_z, _, _, ckpt_path, info, num_inverse, cat_inverse = get_input_generate(args)
@@ -48,7 +48,7 @@ def main(args):
     # DDIM
     model = DDIMModel(denoise_fn).to(device)
 
-    model.load_state_dict(torch.load(f'{ckpt_path}/model.pt', map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load(f'{ckpt_path}/model.pt', map_location=torch.device('mps')))
 
     '''
         Generating samples    
@@ -58,7 +58,7 @@ def main(args):
     num_samples = train_z.shape[0]
     sample_dim = in_dim
     # torch.manual_seed(i)
-
+    print(device)
     with (open(f'distances_syn_{with_w}.txt', 'w') as f):
         with (open(f'distances_real_{with_w}.txt', 'w') as g):
             for i in range(1):
@@ -71,8 +71,8 @@ def main(args):
 
                     print('sampling with watermark - ' + with_w)
                     # change from two-dimensional table into watermark size [1, c, l, w]
-                    # init_latents = init_latents.unsqueeze(0).unsqueeze(0)
-                    init_latent_w = copy.deepcopy(init_latents)
+                    init_latents = init_latents.unsqueeze(0).unsqueeze(0)
+                    init_latent_w = copy.deepcopy(init_latents).to(device)
 
                     # # ground-truth patch
                     # gt_patch = get_watermarking_pattern(args, device, shape=init_latent_w.shape, seed=i)
@@ -81,11 +81,11 @@ def main(args):
                     # # inject watermark
                     # latents = inject_watermark(init_latent_w, watermarking_mask, gt_patch, args)
                     watermarked_latents, key, channel, radius = get_noise(init_latent_w.shape, pattern=with_w)
-
+                    key.to(device)
                     # back to two-dimensional
-                    # latents = watermarked_latents.squeeze(0).squeeze(0)
-                    # latents_2 = latents.to(device)
-                    latents_2 = watermarked_latents.to(device)
+                    latents = watermarked_latents.squeeze(0).squeeze(0)
+                    latents_2 = latents.to(device)
+                    # latents_2 = watermarked_latents.to(device)
                     # keys = torch.load(f'{save_path_arg}/keys.pt', map_location=torch.device('cpu'))
                     #
                     # hex_dig = hashlib.sha256(key.numpy().tobytes()).hexdigest()
@@ -101,8 +101,8 @@ def main(args):
                     # np.save(f'{save_dir}/gt_patch.npy', np_gt_patch)
                     # np.save(f'{save_dir}/watermarking_mask.npy', np_watermarking_mask)
                     # is_watermarked, dist = detect(watermarked_latents, key, channel, radius)
-                    dist = torch.abs(init_latent_w - watermarked_latents).mean().item()
-                    print('Distance after wm: ', dist)
+                    # dist = torch.abs(init_latent_w - latents_2).mean().item()
+                    # print('Distance after wm: ', dist)
                 else:
                     print('sampling without watermark')
                     latents_1 = init_latents.to(device)
@@ -112,11 +112,11 @@ def main(args):
 
                 # DDIM no watermark
                 noise_scheduler = DDIMScheduler(num_train_timesteps=1000)
-                # x_next_1 = noise_scheduler.generate(
-                #         model.noise_fn,
-                #         init_latents,
-                #         num_inference_steps=steps,
-                #         eta=0.0)
+                x_next_1 = noise_scheduler.generate(
+                        model.noise_fn,
+                        latents_1,
+                        num_inference_steps=steps,
+                        eta=0.0)
 
                 # DDIM watermark
                 x_next_2 = noise_scheduler.generate(
@@ -125,31 +125,35 @@ def main(args):
                         num_inference_steps=steps,
                         eta=0.0)
 
-                is_watermarked, dist = detect(x_next_2, key, channel, radius)
+
+
+                # is_watermarked, dist = detect(x_next_2, key, channel, radius)
                 # dist = torch.abs(init_latent_w - x_next_2).mean().item()
-                print('Distance after wm after DDIM: ', dist)
+                # print('Distance after wm after DDIM: ', dist)
+                # x_next_2 = x_next_2 * 2 + mean.to(device)
 
-                x_next_2 = x_next_2 * 2 + mean.to(device)
+                #
+                # x_next_2 = (x_next_2 - mean.to(device)) / 2
 
-                x_next_2 = (x_next_2 - mean.to(device)) / 2
 
-                recovered_latent = noise_scheduler.gen_reverse(
-                    model.noise_fn,
-                    x_next_2,
-                    num_inference_steps=steps,
-                    eta=0.0
-                )
-
-                # recovered_latent = (recovered_latent - mean.to(device)) / 2
-
-                is_watermarked, dist = detect(recovered_latent, key, channel, radius)
-                # dist = torch.abs(init_latent_w - recovered_latent).mean().item()
-                print('Distance after wm after DDIM after DDIM Inverse: ', dist)
+                #
+                # recovered_latent = noise_scheduler.gen_reverse(
+                #     model.noise_fn,
+                #     x_next_2,
+                #     num_inference_steps=steps,
+                #     eta=0.0
+                # )
+                #
+                # # recovered_latent = (recovered_latent - mean.to(device)) / 2
+                #
+                # is_watermarked, dist = detect(recovered_latent, key, channel, radius)
+                # # dist = torch.abs(init_latent_w - recovered_latent).mean().item()
+                # print('Distance after wm after DDIM after DDIM Inverse: ', dist)
 
                 # Saving the synthetic csv
-                # x_next_dict = {'no-w': x_next_1, 'w': x_next_2}
-                x_next_dict = {'w': x_next_2}
-
+                x_next_dict = {'no-w': x_next_1, 'w': x_next_2}
+                # x_next_dict = {'w': x_next_2}
+                distances = {}
                 for k in x_next_dict.keys():
                     print(k)
                     # save_path = f'{save_dir}/{k}-{args.method}.csv'
@@ -218,11 +222,14 @@ def main(args):
 
                     # encoded_latents = (encoded_latents - mean.to(device)) / 2
 
-                    is_watermarked, dist = detect(encoded_latents, key, channel, radius)
+                    # is_watermarked, dist = detect(encoded_latents, key, channel, radius)
                     # dist = torch.abs(init_latent_w - x_next_2).mean().item()
-                    print('Distance after wm after DDIM before inversion: ', dist)
+                    # print('Distance after wm after DDIM before inversion: ', dist)
 
                     encoded_latents = (encoded_latents - mean.to(device)) / 2
+
+                    # print('look here v')
+                    # _, _ = detect(encoded_latents, key, channel, radius)
 
                     recovered_latent = noise_scheduler.gen_reverse(
                         model.noise_fn,
@@ -232,43 +239,45 @@ def main(args):
                     )
 
                     # recovered_latent = (recovered_latent - mean.to(device)) / 2
-                    # recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
-                    # is_watermarked, dist_1 = detect(recovered_latent, key, channel, radius)
+                    recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
                     is_watermarked, dist_1 = detect(recovered_latent, key, channel, radius)
+                    # is_watermarked, dist_1 = detect(recovered_latent, key, channel, radius)
                     print(f'{k} is_watermarked: ', is_watermarked)
+
+                    distances[k] = dist_1
 
                     # if 'no' not in k:
                     # f.write(str(dist) + '\n')
                     # else:
                     #     g.write(str(dist) + '\n')
 
-                    save_dir = 'synthetic/adult/real'
-                    save_path = 'synthetic/adult/real/adult.csv'
-                    if not is_processed(save_dir):
-                        # process_data(dataname, save_path, save_dir, k)
-                        process_data(dataname, save_path, save_dir)
-
-                    # x_num, x_cat = preprocess_syn(save_dir, k=k)
-                    x_num, x_cat = preprocess_syn(save_dir)
-
-                    encoded_latents = get_encoder_latent(x_num, x_cat, info, device)
-
-                    # encoded_latents = train_z
-
-                    encoded_latents = (encoded_latents - mean.to(device)) / 2
-
-                    recovered_latent = noise_scheduler.gen_reverse(
-                        model.noise_fn,
-                        encoded_latents,
-                        num_inference_steps=steps,
-                        eta=0.0
-                    )
-
-                    # recovered_latent = (recovered_latent - mean.to(device)) / 2
-                    # recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
+                    # save_dir = 'synthetic/adult/real'
+                    # save_path = 'synthetic/adult/real/adult.csv'
+                    # if not is_processed(save_dir):
+                    #     # process_data(dataname, save_path, save_dir, k)
+                    #     process_data(dataname, save_path, save_dir)
+                    #
+                    # # x_num, x_cat = preprocess_syn(save_dir, k=k)
+                    # x_num, x_cat = preprocess_syn(save_dir)
+                    #
+                    # encoded_latents = get_encoder_latent(x_num, x_cat, info, device)
+                    #
+                    # # encoded_latents = train_z
+                    #
+                    # encoded_latents = (encoded_latents - mean.to(device)) / 2
+                    #
+                    # recovered_latent = noise_scheduler.gen_reverse(
+                    #     model.noise_fn,
+                    #     encoded_latents,
+                    #     num_inference_steps=steps,
+                    #     eta=0.0
+                    # )
+                    #
+                    # # recovered_latent = (recovered_latent - mean.to(device)) / 2
+                    # # recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
+                    # # is_watermarked, dist_2 = detect(recovered_latent, key, channel, radius)
                     # is_watermarked, dist_2 = detect(recovered_latent, key, channel, radius)
-                    is_watermarked, dist_2 = detect(recovered_latent, key, channel, radius)
-                    print(f'{k} is_watermarked: ', is_watermarked)
+                    # print(f'{k} is_watermarked: ', is_watermarked)
 
                     # g.write(str(dist) + '\n')
 
@@ -276,9 +285,14 @@ def main(args):
                     print('Time:', end_time - start_time)
                     print('Saving sampled data to {}'.format(save_path))
 
-                    print('\n')
-                    print(f'Wm latents distance: {dist_1}')
-                    print(f'Real latents distance: {dist_2}')
+                print('\n')
+                print(f'Wm latents distance: {distances["w"]}')
+                print(f'Non wm latents distance: {distances["no-w"]}')
+
+                if distances['w'] < distances['no-w']:
+                    print('Congratulations! GOOD JOB')
+                else:
+                    print('THIS IS BAD')
 
 
 if __name__ == '__main__':
@@ -297,3 +311,5 @@ if __name__ == '__main__':
         args.device = f'cuda:{args.gpu}'
     else:
         args.device = 'mps'
+
+    args.device = 'mps'
