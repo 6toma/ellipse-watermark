@@ -24,6 +24,8 @@ class Tokenizer(nn.Module):
             nn_init.kaiming_uniform_(self.category_embeddings.weight, a=math.sqrt(5))
             print(f'{self.category_embeddings.weight.shape=}')
 
+        print('d num ', d_numerical)
+        print('d token ', d_token)
         # take [CLS] token into account
         self.weight = nn.Parameter(Tensor(d_numerical + 1, d_token))
         self.bias = nn.Parameter(Tensor(d_bias, d_token)) if bias else None
@@ -41,12 +43,16 @@ class Tokenizer(nn.Module):
     def forward(self, x_num, x_cat):
         x_some = x_num if x_cat is None else x_cat
         assert x_some is not None
+        print('x_num ', x_num.shape)
+        print('x_some ', x_num.shape)
         x_num = torch.cat(
             [torch.ones(len(x_some), 1, device=x_some.device)]  # [CLS]
             + ([] if x_num is None else [x_num]),
             dim=1,
         )
-    
+
+        print('weight ', self.weight.shape)
+        print('xnum ', x_num.shape)
         x = self.weight[None] * x_num[:, :, None]
 
         if x_cat is not None:

@@ -154,6 +154,7 @@ def get_args():
     # configs for watermarking
     parser.add_argument('--wm', type=str, default='None', help='The type of watermark.')
     parser.add_argument('--data_dir', type=str, default=None, help='Path to data directory.')
+    # parser.add_argument('--attack', type=str, default=None, help='Path to data directory.')
 
     args = parser.parse_args()
 

@@ -63,6 +63,7 @@ def main(args):
     lambd = args.lambd
 
     device =  args.device
+    device = 'mps'
 
 
     info_path = f'{curr_dir}/../../data/{dataname}/info.json'
@@ -230,3 +231,4 @@ if __name__ == '__main__':
         args.device = 'cuda:{}'.format(args.gpu)
     else:
         args.device = 'cpu'
+    args.device = 'mps'

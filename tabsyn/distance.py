@@ -3,16 +3,13 @@ import torch
 
 import argparse
 import warnings
-import time
-import copy
-import numpy as np
-import tqdm
-# import wandb
+import pandas as pd
 
 from tabsyn.model import MLPDiffusion, Model, DDIMModel, DDIMScheduler, BDIA_DDIMScheduler
 from tabsyn.latent_utils import get_input_generate, recover_data, split_num_cat_target, get_encoder_latent
-from tabsyn.watermark_utils_2 import detect
-from tabsyn.process_syn_dataset import process_data, preprocess_syn, is_processed
+from tabsyn.watermark_utils import detect
+from tabsyn.process_syn_dataset import process_data, preprocess_syn
+import tabsyn.attacks as attacks
 
 warnings.filterwarnings('ignore')
 
@@ -22,7 +19,7 @@ def main(args):
     device = args.device
     data_dir = args.data_dir
     steps = args.steps
-    # steps = 1
+    device = 'mps'
 
     with_w = args.wm
 
@@ -41,8 +38,18 @@ def main(args):
     noise_scheduler = DDIMScheduler(num_train_timesteps=1000)
 
     data_path = f'{data_dir}/{dataname}.csv'
-    if not is_processed(data_dir):
-        process_data(dataname, data_path, data_dir)
+
+    # attack here
+    df = pd.read_csv(data_path)
+
+    df_attacked = attacks.permute_columns(df)
+
+    new_data_path = f'{data_dir}/{dataname}_attacked.csv'
+    df_attacked.to_csv(new_data_path)
+    data_path = new_data_path
+    # end attacks here
+
+    process_data(dataname, data_path, data_dir)
 
     x_num, x_cat = preprocess_syn(data_dir)
 
@@ -59,15 +66,28 @@ def main(args):
 
     recovered_latent = recovered_latent.unsqueeze(0).unsqueeze(0)
 
+    thresholds_path = os.path.join(data_dir, '../thresholds.pt')
+    thresholds_path = os.path.normpath(thresholds_path)
+
+    thresholds = torch.load(thresholds_path, map_location=torch.device('cpu'))
+
     keys_path = os.path.join(data_dir, '../keys.pt')
     keys_path = os.path.normpath(keys_path)
 
     keys = torch.load(keys_path, map_location=torch.device('cpu'))
+
     wm_present = False
     for key_name, w_key in keys.items():
-        w_channel, w_radius = key_name.split("_")[1:3]
-        is_watermarked, dist = detect(recovered_latent, w_key, w_channel, w_radius)
-        print('distance: ', dist)
+        w_channel = key_name.split("_")[1]
+        w_pattern = key_name.split("_")[2]
+        if w_pattern == 'ring':
+            continue
+        print('channel', w_channel)
+        print('w_key', type(w_key))
+        threshold = thresholds[w_pattern]
+
+        is_watermarked = detect(recovered_latent, w_key, w_channel, threshold)
+        # print('distance: ', dist)
         if is_watermarked:
             wm_present = True
             break

@@ -4,17 +4,13 @@ import torch
 import argparse
 import warnings
 import time
-import copy
 import numpy as np
 import json
-import wandb
 
-from src import get_categories
-
-from tabsyn.model import MLPDiffusion, Model, DDIMModel, DDIMScheduler
-from tabsyn.latent_utils import get_input_generate, recover_data, split_num_cat_target, preprocess_new_dataset  # get_encoder_latent
+from tabsyn.model import MLPDiffusion, DDIMModel, DDIMScheduler
+from tabsyn.latent_utils import get_input_generate, recover_data, split_num_cat_target  # get_encoder_latent
 # from tabsyn.watermark_utils import get_watermarking_mask, inject_watermark, get_watermarking_pattern, eval_watermark
-from tabsyn.watermark_utils import get_noise, detect
+from tabsyn_old_cide.watermark_utils_old import get_noise, detect
 
 from utils_train import preprocess
 from tabsyn.vae.model import Encoder_model

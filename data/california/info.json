@@ -1,0 +1,122 @@
+{
+    "name": "california",
+    "task_type": "regression",
+    "header": "infer",
+    "column_names": [
+        "MedInc",
+        "HouseAge",
+        "AveRooms",
+        "AveBedrms",
+        "Population",
+        "AveOccup",
+        "Latitude",
+        "Longitude",
+        "MedHouseVal"
+    ],
+    "num_col_idx": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+    ],
+    "cat_col_idx": [],
+    "target_col_idx": [
+        8
+    ],
+    "file_type": "csv",
+    "data_path": "data/california/california.csv",
+    "test_path": null,
+    "column_info": {
+        "0": {},
+        "type": "numerical",
+        "max": 5.00001,
+        "min": 0.14999,
+        "1": {},
+        "2": {},
+        "3": {},
+        "4": {},
+        "5": {},
+        "6": {},
+        "7": {},
+        "8": {}
+    },
+    "train_num": 18576,
+    "test_num": 2064,
+    "idx_mapping": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8
+    },
+    "inverse_idx_mapping": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8
+    },
+    "idx_name_mapping": {
+        "0": "MedInc",
+        "1": "HouseAge",
+        "2": "AveRooms",
+        "3": "AveBedrms",
+        "4": "Population",
+        "5": "AveOccup",
+        "6": "Latitude",
+        "7": "Longitude",
+        "8": "MedHouseVal"
+    },
+    "metadata": {
+        "columns": {
+            "0": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "1": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "2": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "3": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "4": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "5": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "6": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "7": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            },
+            "8": {
+                "sdtype": "numerical",
+                "computer_representation": "Float"
+            }
+        }
+    }
+}

@@ -131,7 +131,7 @@ def split_num_cat_target(syn_data, info, num_inverse, cat_inverse, device):
         syn_num = syn_num[:, len(target_col_idx):]
     
     else:
-        print(syn_cat.shape)
+        # print(syn_cat.shape)
         syn_target = syn_cat[:, :len(target_col_idx)]
         syn_cat = syn_cat[:, len(target_col_idx):]
 

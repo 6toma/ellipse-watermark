@@ -243,18 +243,18 @@ def normalize(
 def cat_process_nans(X: ArrayDict, policy: Optional[CatNanPolicy]) -> ArrayDict:
     assert X is not None
     nan_masks = {k: v == CAT_MISSING_VALUE for k, v in X.items()}
-    if any(x.any() for x in nan_masks.values()):  # type: ignore[code]
-        if policy is None:
-            X_new = X
-        elif policy == 'most_frequent':
-            imputer = SimpleImputer(missing_values=CAT_MISSING_VALUE, strategy=policy)  # type: ignore[code]
-            imputer.fit(X['train'])
-            X_new = {k: cast(np.ndarray, imputer.transform(v)) for k, v in X.items()}
-        else:
-            util.raise_unknown('categorical NaN policy', policy)
-    else:
-        assert policy is None
-        X_new = X
+    # if any(x.any() for x in nan_masks.values()):  # type: ignore[code]
+    #     if policy is None:
+    #         X_new = X
+    #     elif policy == 'most_frequent':
+    #         imputer = SimpleImputer(missing_values=CAT_MISSING_VALUE, strategy=policy)  # type: ignore[code]
+    #         imputer.fit(X['train'])
+    #         X_new = {k: cast(np.ndarray, imputer.transform(v)) for k, v in X.items()}
+    #     else:
+    #         util.raise_unknown('categorical NaN policy', policy)
+    # else:
+    assert policy is None
+    X_new = X
     return X_new
 
 

@@ -38,7 +38,7 @@ def preprocess_beijing():
     df_cleaned.to_csv(info['data_path'], index = False)
 
 def preprocess_news():
-    with open(f'{INFO_PATH}/news.json', 'r') as f:
+    with open(f'{INFO_PATH}/news/info.json', 'r') as f:
         info = json.load(f)
 
     data_path = info['raw_data_path']
@@ -140,7 +140,7 @@ def process_data(name, data_path, save_dir):
     num_columns = [column_names[i] for i in num_col_idx]
     cat_columns = [column_names[i] for i in cat_col_idx]
     target_columns = [column_names[i] for i in target_col_idx]
-    print(data_df.shape)
+    print('data df shape', data_df.shape)
 
     data_df.rename(columns = idx_name_mapping, inplace=True)
 
@@ -149,9 +149,15 @@ def process_data(name, data_path, save_dir):
     for col in cat_columns:
         data_df.loc[data_df[col] == '?', col] = 'nan'
     # print(data_df[num_columns])
-    X_num_train = data_df[num_columns].iloc[1:].to_numpy().astype(np.float32)
-    X_cat_train = data_df[cat_columns].iloc[1:].to_numpy()
-    y_train = data_df[target_columns].iloc[1:].to_numpy()
+    # X_num_train = data_df[num_columns].iloc[1:].to_numpy().astype(np.float32)
+    # X_cat_train = data_df[cat_columns].iloc[1:].to_numpy()
+    # y_train = data_df[target_columns].iloc[1:].to_numpy()
+    X_num_train = data_df[num_columns].to_numpy().astype(np.float32)
+    X_cat_train = data_df[cat_columns].to_numpy()
+    y_train = data_df[target_columns].to_numpy()
+
+    # print('', X_num_train.shape)
+    # print('y-train ', y_train.shape)
 
     np.save(f'{save_dir}/X_num.npy', X_num_train)
     np.save(f'{save_dir}/X_cat.npy', X_cat_train)
@@ -298,18 +304,18 @@ def normalize(X, normalization, seed, return_normalizer=False):
 def cat_process_nans(X, policy):
     assert X is not None
     nan_masks = {k: v == CAT_MISSING_VALUE for k, v in X.items()}
-    if any(x.any() for x in nan_masks.values()):  # type: ignore[code]
-        if policy is None:
-            X_new = X
-        elif policy == 'most_frequent':
-            imputer = SimpleImputer(missing_values=CAT_MISSING_VALUE, strategy=policy)  # type: ignore[code]
-            imputer.fit(X['train'])
-            X_new = {k: cast(np.ndarray, imputer.transform(v)) for k, v in X.items()}
-        else:
-            print('Unknown categorical NaN policy', policy)
-    else:
-        assert policy is None
-        X_new = X
+    # if any(x.any() for x in nan_masks.values()):  # type: ignore[code]
+    #     if policy is None:
+    #         X_new = X
+    #     elif policy == 'most_frequent':
+    #         imputer = SimpleImputer(missing_values=CAT_MISSING_VALUE, strategy=policy)  # type: ignore[code]
+    #         imputer.fit(X['train'])
+    #         X_new = {k: cast(np.ndarray, imputer.transform(v)) for k, v in X.items()}
+    #     else:
+    #         print('Unknown categorical NaN policy', policy)
+    # else:
+    assert policy is None
+    X_new = X
     return X_new
 
 def cat_encode(X, encoding, return_encoder=False):  # (X, is_converted_to_numerical)
@@ -340,11 +346,3 @@ def cat_encode(X, encoding, return_encoder=False):  # (X, is_converted_to_numeri
     if return_encoder:
         return X, True, encoder # type: ignore[code]
     return (X, True)
-
-def is_processed(directory):
-    for file in os.listdir(directory):
-        if file.endswith('.npy'):
-            return True
-    return False
-
-
