@@ -115,7 +115,7 @@ def get_column_name_mapping(data_df, num_col_idx, cat_col_idx, target_col_idx, c
 
 
 
-def process_data(name, data_path, save_dir):
+def process_data(name, data_path, save_dir, expected_shape=None):
 
     if name == 'news':
         preprocess_news()
@@ -125,12 +125,13 @@ def process_data(name, data_path, save_dir):
     with open(f'{INFO_PATH}/{name}/info.json', 'r') as f:
         info = json.load(f)
 
-    data_df = pd.read_csv(data_path, header = info['header'])
+    # data_df = pd.read_csv(data_path, header = info['header'])
+    data_df = pd.read_csv(data_path)
 
     num_data = data_df.shape[0]
 
     column_names = info['column_names'] if info['column_names'] else data_df.columns.tolist()
- 
+
     num_col_idx = info['num_col_idx']
     cat_col_idx = info['cat_col_idx']
     target_col_idx = info['target_col_idx']
@@ -140,7 +141,17 @@ def process_data(name, data_path, save_dir):
     num_columns = [column_names[i] for i in num_col_idx]
     cat_columns = [column_names[i] for i in cat_col_idx]
     target_columns = [column_names[i] for i in target_col_idx]
-    print('data df shape', data_df.shape)
+    # print('data df shape', data_df.shape)
+
+    if data_df.shape[1] != expected_shape[1]:
+        sample_from_df = pd.read_csv(f'synthetic/{name}/no-w/{name}.csv')
+        missing_columns = [col for col in sample_from_df.columns if col not in data_df.columns]
+        # Step 5: Add the missing columns from df2 to df1, preserving the order as in the original CSV
+        for col in missing_columns:
+            data_df[col] = sample_from_df[col]
+
+        # Optionally, reorder the columns in df1 to match the original CSV
+        data_df = data_df[sample_from_df.columns]
 
     data_df.rename(columns = idx_name_mapping, inplace=True)
 
@@ -148,13 +159,15 @@ def process_data(name, data_path, save_dir):
         data_df.loc[data_df[col] == '?', col] = np.nan
     for col in cat_columns:
         data_df.loc[data_df[col] == '?', col] = 'nan'
-    # print(data_df[num_columns])
-    # X_num_train = data_df[num_columns].iloc[1:].to_numpy().astype(np.float32)
-    # X_cat_train = data_df[cat_columns].iloc[1:].to_numpy()
-    # y_train = data_df[target_columns].iloc[1:].to_numpy()
-    X_num_train = data_df[num_columns].to_numpy().astype(np.float32)
-    X_cat_train = data_df[cat_columns].to_numpy()
-    y_train = data_df[target_columns].to_numpy()
+
+    if name == 'adult':
+        X_num_train = data_df[num_columns].iloc[1:].to_numpy().astype(np.float32)
+        X_cat_train = data_df[cat_columns].iloc[1:].to_numpy()
+        y_train = data_df[target_columns].iloc[1:].to_numpy()
+    else:
+        X_num_train = data_df[num_columns].to_numpy().astype(np.float32)
+        X_cat_train = data_df[cat_columns].to_numpy()
+        y_train = data_df[target_columns].to_numpy()
 
     # print('', X_num_train.shape)
     # print('y-train ', y_train.shape)
@@ -263,6 +276,9 @@ def preprocess_syn(dataset_path, task_type = 'binclass', k='', cat_encoding = No
 
 def num_process_nans(X_num, policy):
     assert X_num is not None
+
+    print(type(X_num))
+
     nan_masks = {k: np.isnan(v) for k, v in X_num.items()}
     if not any(x.any() for x in nan_masks.values()):  # type: ignore[code]
         # assert policy is None
@@ -271,8 +287,10 @@ def num_process_nans(X_num, policy):
 
     assert policy is not None
 
+
+
     if policy == 'mean':
-        new_values = np.nanmean(X_num, axis=0)
+        new_values = np.nanmean(X_num['train'], axis=0)
         X_num = deepcopy(X_num)
         for k, v in X_num.items():
             num_nan_indices = np.where(nan_masks[k])

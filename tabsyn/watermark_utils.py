@@ -2,17 +2,6 @@ import torch
 from typing import Union, List, Tuple
 import numpy as np
 
-
-# def _circle_mask(size=64, r=10, x_offset=0, y_offset=0):
-#     # reference: https://stackoverflow.com/questions/69687798/generating-a-soft-circluar-mask-using-numpy-python-3
-#     x0 = y0 = size // 2
-#     x0 += x_offset
-#     y0 += y_offset
-#     y, x = np.ogrid[:size, :size]
-#     y = y[::-1]
-#
-#     return ((x - x0) ** 2 + (y - y0) ** 2) <= r ** 2
-
 def _circle_mask(shape, r=10, x_offset=0, y_offset=0):
     """
     Generates a circular mask for the given shape.
@@ -38,18 +27,19 @@ def elliptical_mask(shape, x_radius=None, y_radius=None, x_offset=0, y_offset=0)
 
     if y_radius is None:
         y_radius = height * scale_factor
+        # y_radius = height / 2
 
     x_center = width / 2 + x_offset
     y_center = height / 2 + y_offset
 
     # Generate the circle mask
-    # mask = ((x - x_center) ** 2 / y_radius ** 2 + (y - y_center) ** 2 / y_radius ** 2) <= 1
+    mask = ((x - x_center) ** 2 / y_radius ** 2 + (y - y_center) ** 2 / y_radius ** 2) <= 1
 
     # Generate the elliptical mask
-    mask = ((x - x_center) ** 2 / x_radius ** 2 + (y - y_center) ** 2 / y_radius ** 2) <= 1
+    # mask = ((x - x_center) ** 2 / x_radius ** 2 + (y - y_center) ** 2 / y_radius ** 2) <= 1
     return mask
 
-def _get_pattern(shape, w_pattern='ring', generator=None):
+def generate_patch(shape, w_pattern='ring', generator=None):
     gt_init = torch.randn(shape, generator=generator)
 
     if 'rand' in w_pattern:
@@ -69,7 +59,6 @@ def _get_pattern(shape, w_pattern='ring', generator=None):
             scale_factor = new_x_radius / min_dim
             new_y_radius = max_dim * scale_factor
 
-            # print(f'scale = {scale_factor}\nx = {new_x_radius}\ny = {new_y_radius}\n')
 
             tmp_mask = elliptical_mask((shape[-2], shape[-1]), x_radius=new_x_radius, y_radius=new_y_radius)
             tmp_mask = torch.tensor(tmp_mask)
@@ -88,19 +77,14 @@ def get_noise(shape: Union[torch.Size, List, Tuple], pattern, generator=None):
     w_radius = smallest_dim // 2
     w_pattern = pattern  # watermark pattern
 
-    # height, width = (shape[-2], shape[-1])
-
     # get watermark key and mask
-    # np_mask = _circle_mask((shape[-2], shape[-1]), r=w_radius)
-    # np_mask = elliptical_mask((shape[-2], shape[-1]))
-    # np_mask = elliptical_mask((shape[-2], shape[-1]), 20, 10853.333333333332)
 
     np_mask = elliptical_mask((shape[-2], shape[-1]))
     torch_mask = torch.tensor(np_mask)
     w_mask = torch.zeros(shape, dtype=torch.bool)
     w_mask[:, w_channel] = torch_mask
 
-    w_key = _get_pattern(shape, w_pattern=w_pattern, generator=generator)
+    w_key = generate_patch(shape, w_pattern=w_pattern, generator=generator)
 
     # inject watermark
     assert len(shape) == 4, f"Make sure you pass a `shape` tuple/list of length 4 not {len(shape)}"
@@ -111,41 +95,56 @@ def get_noise(shape: Union[torch.Size, List, Tuple], pattern, generator=None):
     init_latents_fft = torch.fft.fftshift(torch.fft.fft2(init_latents), dim=(-1, -2))
     init_latents_fft[w_mask] = w_key[w_mask].clone()
 
-    torch.save(init_latents_fft, f'tensor_fft_{pattern}_100.pt')
-
     init_latents = torch.fft.ifft2(torch.fft.ifftshift(init_latents_fft, dim=(-1, -2))).real
 
     return init_latents, w_key, w_channel, w_radius
 
 
 def detect(inverted_latents, w_key, w_channel, threshold):
-    # threshold = 77
+    inverted_latents = inverted_latents.to("cpu")
+
+    inverted_latents = inverted_latents.squeeze(0).squeeze(0)
+    # print(inverted_latents.shape)
+    inverted_latents = adjust_tensor_shape(inverted_latents, w_key.squeeze(0).squeeze(0))
+    # print(inverted_latents.shape)
+    inverted_latents = inverted_latents.unsqueeze(0).unsqueeze(0)
 
     # check if one key matches
     shape = inverted_latents.shape
 
-    # height, width = (shape[-2], shape[-1])
-
-    # np_mask = _circle_mask((shape[-2], shape[-1]), r=int(w_radius))
-    # np_mask = elliptical_mask((shape[-2], shape[-1]), 20, 10853.333333333332)
     np_mask = elliptical_mask((shape[-2], shape[-1]))
     torch_mask = torch.tensor(np_mask)
     w_mask = torch.zeros(shape, dtype=torch.bool)
     w_mask[:, int(w_channel)] = torch_mask
 
-    # calculate the distance
     inverted_latents = inverted_latents.to("cpu")
+
+    # calculate the distance
     inverted_latents_fft = torch.fft.fftshift(torch.fft.fft2(inverted_latents), dim=(-1, -2))
 
-    torch.save(inverted_latents_fft, f'tensor_fft_inverted_100.pt')
-
     dist = torch.abs(inverted_latents_fft[w_mask] - w_key[w_mask]).mean().item()
-    # dist = torch.cdist(inverted_latents_fft[w_mask], w_key[w_mask])
-    # dist = torch.sqrt(torch.sum(torch.pow(torch.subtract(inverted_latents_fft[w_mask], w_key[w_mask]), 2), dim=0))
-    # dist = torch.norm(inverted_latents_fft[w_mask] - w_key[w_mask]).item()
 
     print('distance: ', dist)
     print('threshold: ', threshold)
     print(dist <= threshold)
-    return dist <= threshold
 
+    return dist <= threshold, dist
+
+
+def adjust_tensor_shape(tensor1, tensor2):
+    shape1 = tensor1.shape
+    shape2 = tensor2.shape
+
+    changed = False
+    # Adjust rows
+    if shape1[0] < shape2[0]:
+        # Add rows by sampling randomly
+        rows_to_add = shape2[0] - shape1[0]
+        additional_rows = tensor1[np.random.choice(shape1[0], rows_to_add, replace=True), :]
+        tensor1 = np.vstack([tensor1, additional_rows])
+        changed = True
+    elif shape1[0] > shape2[0]:
+        # Remove rows randomly
+        tensor1 = tensor1[np.random.choice(shape1[0], shape2[0], replace=False), :]
+
+    return torch.from_numpy(tensor1) if changed else tensor1
